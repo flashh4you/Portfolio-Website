@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHIBASHIS | UI/UX & MERN Developer</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;600;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --brand-red: #E21B22;   
+            --bg-white: #FFFFFF;    
+            --text-dark: #111111;
+            --text-muted: #666666;
+            --car-pink: #FF00FF; 
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+
+        body {
+            background-color: var(--bg-white);
+            color: var(--text-dark);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- THE CURSOR --- */
+        #cursor-dot {
+            position: fixed; top: 0; left: 0;
+            width: 10px; height: 10px;
+            background: var(--brand-red);
+            border-radius: 50%;
+            pointer-events: none; z-index: 10000;
+            transform: translate(-50%, -50%);
+        }
+        #cursor-ring {
+            position: fixed; top: 0; left: 0;
+            width: 40px; height: 40px;
+            border: 2px solid var(--brand-red);
+            border-radius: 50%;
+            pointer-events: none; z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+
+        /* --- THE GLOBAL CAR CANVAS --- */
+        #globalCarCanvas {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none; 
+            z-index: 9000; 
+        }
+
+        /* --- HUD --- */
+        .hud-container {
+            position: fixed; bottom: 40px; right: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid var(--brand-red);
+            padding: 15px 25px; z-index: 9500;
+            display: flex; flex-direction: column; gap: 10px; width: 220px;
+        }
+        .hud-header {
+            display: flex; justify-content: space-between;
+            font-weight: 600; font-size: 0.85rem;
+            color: var(--brand-red); text-transform: uppercase; letter-spacing: 1px;
+        }
+        .hud-header span { font-family: 'Anton', sans-serif; font-size: 1.2rem; }
+        .progress-track {
+            width: 100%; height: 8px;
+            background: rgba(226, 27, 34, 0.1); overflow: hidden;
+        }
+        .progress-fill {
+            width: 0%; height: 100%;
+            background: var(--brand-red); transition: width 0.1s ease-out;
+        }
+        .driving-hint {
+            font-size: 0.75rem; color: var(--text-dark);
+            text-align: right; font-weight: 800; margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        /* --- NAVBAR & FULLSCREEN MENU --- */
+        header {
+            position: fixed; top: 0; left: 0; width: 100%;
+            padding: 30px 5vw; display: flex;
+            justify-content: space-between; align-items: center; z-index: 9800;
+        }
+        .logo { font-family: 'DM Serif Display', serif; font-size: 2.2rem; letter-spacing: 2px; color: var(--text-dark); }
+        .menu-text { 
+            font-weight: 600; letter-spacing: 1px; color: var(--text-dark); 
+            position: relative; z-index: 9800; pointer-events: auto; /* Clickable */
+        }
+        .menu-text:hover { color: var(--brand-red); }
+
+        #menu-overlay {
+            position: fixed; top: -100vh; left: 0; width: 100vw; height: 100vh;
+            background-color: var(--text-dark); z-index: 9700;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px;
+            transition: top 0.6s cubic-bezier(0.85, 0, 0.15, 1);
+        }
+        #menu-overlay.active { top: 0; }
+        .menu-link {
+            font-family: 'Anton', sans-serif; font-size: clamp(3rem, 6vw, 6rem);
+            color: var(--bg-white); text-decoration: none; text-transform: uppercase;
+            line-height: 1.1; transition: all 0.3s ease; position: relative; z-index: 9701; pointer-events: auto;
+        }
+        .menu-link:hover { color: var(--brand-red); transform: translateX(20px); }
+
+        /* --- SECTIONS --- */
+        section { position: relative; min-height: 100vh; display: flex; align-items: center; padding: 100px 5vw; z-index: 2; }
+
+        /* --- ZONE 01: HERO --- */
+        .hero { justify-content: space-between; gap: 5vw; padding-top: 150px; overflow: hidden; }
+        .hero-img-wrapper { flex: 0 0 35%; height: 70vh; position: relative; z-index: 5; }
+        .hero-img {
+            width: 100%; height: 100%;
+            background-image: url('IMG_6435.PNG'); background-size: cover; background-position: center;
+            position: relative; z-index: 2; filter: grayscale(10%) contrast(120%);
+        }
+        .hero-img-bg {
+            content: ''; position: absolute; top: 25px; left: -25px;
+            width: 100%; height: 100%; background-color: var(--brand-red);
+            z-index: 1; transition: transform 0.4s ease;
+        }
+        .hero-img-wrapper:hover .hero-img-bg { transform: translate(15px, -15px); }
+        
+        .hero-text { flex: 1; z-index: 5; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+        .greeting { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--brand-red); }
+        .hero-text h1 { font-family: 'Anton', sans-serif; font-size: clamp(4rem, 7.5vw, 10rem); line-height: 0.95; text-transform: uppercase; color: var(--brand-red); white-space: nowrap; }
+        .hero-text h1 span { color: var(--bg-white); -webkit-text-stroke: 3px var(--brand-red); display: block; }
+        .hero-text p.subtext { font-size: 1.3rem; max-width: 550px; color: var(--text-dark); line-height: 1.6; font-weight: 400; }
+
+        /* --- MARQUEE TRANSITION --- */
+        .marquee-section {
+            min-height: 30vh; background-color: var(--bg-white);
+            border-top: 2px solid var(--text-dark); border-bottom: 2px solid var(--text-dark);
+            display: flex; align-items: center; overflow: hidden; flex-direction: column; justify-content: center; padding: 50px 0;
+        }
+        .marquee-text { font-family: 'Anton', sans-serif; font-size: 10vw; color: var(--text-dark); white-space: nowrap; line-height: 0.9; text-transform: uppercase; }
+
+        /* --- ZONE 02: PROJECTS & SKILLS --- */
+        .zone-two { background-color: var(--bg-white); color: var(--text-dark); align-items: flex-start; padding-top: 150px; }
+        .grid-container { display: flex; width: 100%; gap: 10vw; }
+        .skills-col { flex: 0 0 35%; }
+        .section-title { font-family: 'Anton', sans-serif; font-size: 4rem; text-transform: uppercase; margin-bottom: 40px; line-height: 1; color: var(--brand-red); }
+        .skills-list { display: flex; flex-wrap: wrap; gap: 15px; }
+        .skill-pill { padding: 10px 20px; border: 2px solid var(--text-dark); font-weight: 600; font-size: 1.1rem; text-transform: uppercase; transition: all 0.3s ease; }
+        .skill-pill:hover { background-color: var(--brand-red); color: var(--bg-white); border-color: var(--brand-red); }
+
+        .projects-col { flex: 1; }
+        .project-item { display: flex; flex-direction: column; justify-content: center; padding: 40px 0; border-bottom: 2px solid rgba(0,0,0,0.1); text-decoration: none; color: var(--text-dark); transition: all 0.3s ease; position: relative; z-index: 100; cursor: none; }
+        .project-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .project-name { font-family: 'Anton', sans-serif; font-size: clamp(2.5rem, 4vw, 3.5rem); text-transform: uppercase; transition: color 0.3s ease; }
+        .project-arrow { font-size: 2.5rem; font-family: 'Inter', sans-serif; transition: transform 0.3s ease; color: var(--text-muted); }
+        .project-desc { font-size: 1.15rem; color: var(--text-muted); margin-top: 15px; max-width: 80%; line-height: 1.5; }
+        .project-item:hover { padding-left: 20px; border-bottom-color: var(--brand-red); }
+        .project-item:hover .project-name { color: var(--brand-red); }
+        .project-item:hover .project-arrow { transform: rotate(45deg); color: var(--car-pink); }
+
+        /* --- ZONE 03: SOCIALS --- */
+        .zone-three { background-color: var(--bg-white); color: var(--text-dark); flex-direction: column; justify-content: center; text-align: center; border-bottom: 2px solid var(--text-dark); }
+        .zone-three h2 { font-family: 'Anton', sans-serif; font-size: clamp(5rem, 12vw, 15rem); color: var(--brand-red); line-height: 0.8; text-transform: uppercase; margin-bottom: 50px; }
+        .social-links { display: flex; gap: 3vw; justify-content: center; flex-wrap: wrap; }
+        .social-link { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--text-dark); text-decoration: none; position: relative; z-index: 100; cursor: none; }
+        .social-link::after { content: ''; position: absolute; width: 100%; height: 3px; bottom: -5px; left: 0; background-color: var(--brand-red); transform: scaleX(0); transform-origin: right; transition: transform 0.4s ease; }
+        .social-link:hover { color: var(--brand-red); }
+        .social-link:hover::after { transform: scaleX(1); transform-origin: left; }
+
+        /* --- ZONE 04: THE FREE-ROAM TEST TRACK --- */
+        .zone-four { background-color: var(--bg-white); flex-direction: column; align-items: flex-start; justify-content: flex-start; padding-top: 100px; padding-bottom: 100px; }
+        .zone-four h2 { font-family: 'Anton', sans-serif; font-size: 4rem; color: var(--text-dark); margin-bottom: 20px; }
+        
+        /* Removed the hard borders and obstacles. Just a clean, endless grid space */
+        .track-arena {
+            width: 100%; height: 60vh; position: relative;
+            background: repeating-linear-gradient(45deg, rgba(0,0,0,0.02), rgba(0,0,0,0.02) 40px, transparent 40px, transparent 80px);
+        }
+
+        /* Cursor interaction overrides */
+        a:hover ~ #cursor-ring, .menu-text:hover ~ #cursor-ring { width: 60px; height: 60px; background-color: rgba(226, 27, 34, 0.1); }
+    </style>
+</head>
+<body>
+
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+    
+    <canvas id="globalCarCanvas"></canvas>
+
+    <div id="menu-overlay">
+        <a href="#zone-one" class="menu-link">01. Home</a>
+        <a href="#zone-two" class="menu-link">02. Deployments</a>
+        <a href="#zone-three" class="menu-link">03. Connect</a>
+        <a href="#zone-four" class="menu-link">04. Free Roam</a>
+    </div>
+
+    <header>
+        <div class="logo">SHIBASHIS</div>
+        <div class="menu-text" id="menu-toggle">MENU</div>
+    </header>
+
+    <div class="hud-container">
+        <div class="hud-header">
+            <div>Zone</div>
+            <span id="zone-text">01</span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill"></div>
+        </div>
+        <div class="driving-hint">use w,a,s,d to drive my car!</div>
+    </div>
+
+    <section id="zone-one" class="hero">
+        <div class="hero-img-wrapper gsap-anim">
+            <div class="hero-img-bg"></div>
+            <div class="hero-img"></div>
+        </div>
+        <div class="hero-text gsap-anim">
+            <p class="greeting">Hi, welcome to my portfolio page ~</p>
+            <div>
+                <h1 class="scrub-left">SHIBASHIS</h1>
+                <h1 class="scrub-right"><span>BHATTACHARJEE</span></h1>
+            </div>
+            <p class="subtext">An UI/UX designer, MERN stack developer, and I engineer high-definition web experiences. Bridging the gap between brutalist aesthetics and complex underlying architecture.</p>
+        </div>
+    </section>
+
+    <section class="marquee-section">
+        <div class="marquee-text scrub-fast-right">CREATIVE LOGIC • CREATIVE LOGIC</div>
+    </section>
+
+    <section id="zone-two" class="zone-two">
+        <div class="grid-container">
+            <div class="skills-col gsap-anim">
+                <h2 class="section-title">Capabilities</h2>
+                <div class="skills-list">
+                    <div class="skill-pill">React.js</div><div class="skill-pill">Node.js</div>
+                    <div class="skill-pill">MongoDB</div><div class="skill-pill">Express</div>
+                    <div class="skill-pill">UI/UX Design</div><div class="skill-pill">Figma</div>
+                    <div class="skill-pill">Vite</div><div class="skill-pill">GSAP</div>
+                </div>
+            </div>
+            <div class="projects-col gsap-anim">
+                <h2 class="section-title">Deployments</h2>
+                <a href="https://rabindrajayanti.netlify.app/" target="_blank" class="project-item">
+                    <div class="project-header"><div class="project-name">Rabindra Jayanti</div><div class="project-arrow">↗</div></div>
+                    <div class="project-desc">A personalized web-based music player featuring a Rabindranath Tagore theme and a seamless, scrollable queue system.</div>
+                </a>
+                <a href="https://flowstatedemo.figma.site/" target="_blank" class="project-item">
+                    <div class="project-header"><div class="project-name">Flowstate</div><div class="project-arrow">↗</div></div>
+                    <div class="project-desc">A productivity application designed to combat doomscrolling and digital distractions, featuring AI-driven user archetypes and Pomodoro timers.</div>
+                </a>
+                <a href="https://rollcallbyshiva.figma.site/" target="_blank" class="project-item">
+                    <div class="project-header"><div class="project-name">Rollcall</div><div class="project-arrow">↗</div></div>
+                    <div class="project-desc">An intuitive attendance tracking platform built to streamline team management and digital record-keeping operations.</div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="zone-three" class="zone-three">
+        <h2 class="gsap-anim">Connect.</h2>
+        <div class="social-links gsap-anim">
+            <a href="https://www.linkedin.com/in/shibashisbhattacharjee/" target="_blank" class="social-link">LinkedIn</a>
+            <a href="https://x.com/ohmyflashh" target="_blank" class="social-link">X (Twitter)</a>
+            <a href="https://www.instagram.com/shibashis.io/" target="_blank" class="social-link">Instagram</a>
+            <a href="https://discord.gg/TgK4baaG" target="_blank" class="social-link">Discord</a>
+            <a href="mailto:shibashisbhattacharjee2004@gmail.com" class="social-link">Email</a>
+        </div>
+    </section>
+
+    <section id="zone-four" class="zone-four">
+        <h2 class="gsap-anim">FREE ROAM.</h2>
+        <div class="track-arena gsap-anim"></div>
+    </section>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.19/bundled/lenis.min.js"></script>
+
+    <script>
+        // 1. Smooth Scrolling Sync
+        const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+        gsap.registerPlugin(ScrollTrigger);
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time) => { lenis.raf(time * 1000); });
+        gsap.ticker.lagSmoothing(0, 0);
+
+        // 2. Interactive Fullscreen Menu Logic
+        const menuToggle = document.getElementById('menu-toggle');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const menuLinks = document.querySelectorAll('.menu-link');
+        let menuOpen = false;
+
+        menuToggle.addEventListener('click', () => {
+            menuOpen = !menuOpen;
+            if(menuOpen) {
+                menuOverlay.classList.add('active');
+                menuToggle.innerText = 'CLOSE';
+                menuToggle.style.color = 'var(--bg-white)';
+            } else {
+                menuOverlay.classList.remove('active');
+                menuToggle.innerText = 'MENU';
+                menuToggle.style.color = 'var(--text-dark)';
+            }
+        });
+
+        // Click a link -> scroll there -> close menu
+        menuLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                lenis.scrollTo(targetId); // Smooth scroll to zone
+                
+                menuOverlay.classList.remove('active');
+                menuOpen = false;
+                menuToggle.innerText = 'MENU';
+                menuToggle.style.color = 'var(--text-dark)';
+            });
+        });
+
+        // 3. Custom Cursor
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorRing = document.getElementById('cursor-ring');
+        let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX; mouseY = e.clientY;
+            cursorDot.style.left = mouseX + 'px'; cursorDot.style.top = mouseY + 'px';
+        });
+
+        function animateCursor() {
+            ringX += (mouseX - ringX) * 0.2; ringY += (mouseY - ringY) * 0.2;
+            cursorRing.style.left = ringX + 'px'; cursorRing.style.top = ringY + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // 4. Scroll HUD
+        window.addEventListener('scroll', () => {
+            const scrollPos = window.scrollY;
+            const maxScroll = document.body.scrollHeight - window.innerHeight;
+            const progress = maxScroll > 0 ? scrollPos / maxScroll : 0;
+            
+            document.querySelector('.progress-fill').style.width = (progress * 100) + '%';
+            
+            let zone = '01';
+            if (progress > 0.25) zone = '02';
+            if (progress > 0.55) zone = '03';
+            if (progress > 0.85) zone = '04';
+            document.getElementById('zone-text').innerText = zone;
+        });
+
+        // 5. GSAP Animations
+        gsap.utils.toArray('.gsap-anim').forEach(element => {
+            gsap.fromTo(element, 
+                { opacity: 0, y: 50 }, 
+                { opacity: 1, y: 0, duration: 1, ease: "power3.out",
+                  scrollTrigger: { trigger: element, start: "top 90%", toggleActions: "play none none none" }
+                }
+            );
+        });
+        
+        gsap.to('.scrub-left', { x: -100, scrollTrigger: { trigger: "body", start: "top top", end: "bottom top", scrub: 1 }});
+        gsap.to('.scrub-right', { x: 100, scrollTrigger: { trigger: "body", start: "top top", end: "bottom top", scrub: 1 }});
+        gsap.to('.scrub-fast-right', { x: 300, scrollTrigger: { trigger: ".marquee-section", start: "top bottom", end: "bottom top", scrub: 1 }});
+
+        // 6. THE NEON PINK CAR ENGINE (FREE ROAM, SMOOTHER HANDLING)
+        const canvas = document.getElementById('globalCarCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+        const car = {
+            x: window.innerWidth / 2, y: window.innerHeight - 150,
+            width: 24, height: 48, speed: 0, angle: 0, maxSpeed: 9,
+            acceleration: 0.2,   // Smoother acceleration
+            friction: 0.04,      // Less friction so it glides better
+            turnSpeed: 0.045     // Lowered from 0.08 for less sensitive steering
+        };
+
+        const keys = { w:false, a:false, s:false, d:false, ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false };
+
+        window.addEventListener('keydown', (e) => { 
+            if (keys.hasOwnProperty(e.key)) { 
+                keys[e.key] = true; 
+                if(e.key.includes('Arrow')) e.preventDefault();
+            } 
+        });
+        window.addEventListener('keyup', (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+
+        function updateCar() {
+            if (keys.w || keys.ArrowUp) car.speed += car.acceleration;
+            if (keys.s || keys.ArrowDown) car.speed -= car.acceleration;
+
+            if (car.speed > 0) car.speed -= car.friction;
+            if (car.speed < 0) car.speed += car.friction;
+            if (Math.abs(car.speed) < car.friction) car.speed = 0;
+
+            if (car.speed > car.maxSpeed) car.speed = car.maxSpeed;
+            if (car.speed < -car.maxSpeed / 2) car.speed = -car.maxSpeed / 2;
+
+            if (car.speed !== 0) {
+                const turnDir = car.speed > 0 ? 1 : -1;
+                if (keys.a || keys.ArrowLeft) car.angle -= car.turnSpeed * turnDir;
+                if (keys.d || keys.ArrowRight) car.angle += car.turnSpeed * turnDir;
+            }
+
+            car.x += Math.sin(car.angle) * car.speed;
+            car.y -= Math.cos(car.angle) * car.speed;
+
+            // Screen Wrap (Endless Canvas)
+            if (car.x < -car.width) car.x = canvas.width + car.width;
+            if (car.x > canvas.width + car.width) car.x = -car.width;
+            if (car.y < -car.height) car.y = canvas.height + car.height;
+            if (car.y > canvas.height + car.height) car.y = -car.height;
+        }
+
+        function drawCar() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(car.x, car.y);
+            ctx.rotate(car.angle);
+            
+            // Neon Pink Underglow
+            ctx.shadowColor = 'var(--car-pink)';
+            ctx.shadowBlur = 25;
+
+            // Flashy Pink Car Body
+            ctx.fillStyle = 'var(--car-pink)';
+            ctx.beginPath();
+            ctx.roundRect(-car.width/2, -car.height/2, car.width, car.height, 6);
+            ctx.fill();
+
+            // Reset shadow 
+            ctx.shadowBlur = 0;
+
+            // Carbon Fiber Roof
+            ctx.fillStyle = '#111';
+            ctx.fillRect(-car.width/2 + 2, -car.height/2 + 10, car.width - 4, car.height - 20);
+
+            // Bright White Windshield
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-car.width/2 + 3, -car.height/2 + 12, car.width - 6, 8);
+            
+            // Headlight Beams (Forward)
+            if (keys.w || keys.ArrowUp) {
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.15)'; 
+                ctx.beginPath();
+                ctx.moveTo(-car.width/2 + 2, -car.height/2);
+                ctx.lineTo(-car.width/2 - 40, -car.height/2 - 120);
+                ctx.lineTo(car.width/2 + 40, -car.height/2 - 120);
+                ctx.lineTo(car.width/2 - 2, -car.height/2);
+                ctx.fill();
+            }
+
+            // Reverse Red Beams (Narrower spread)
+            if (keys.s || keys.ArrowDown) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.25)'; // Bright Red
+                ctx.beginPath();
+                ctx.moveTo(-car.width/2 + 4, car.height/2);
+                ctx.lineTo(-car.width/2 - 15, car.height/2 + 10); 
+                ctx.lineTo(car.width/2 + 15, car.height/2 + 10);
+                ctx.lineTo(car.width/2 - 4, car.height/2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updateCar(); drawCar(); requestAnimationFrame(gameLoop);
+        }
+        
+        gameLoop();
+    </script>
+</body>
+</html>
